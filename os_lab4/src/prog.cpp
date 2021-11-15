@@ -18,34 +18,32 @@ int main(){
     sem_unlink(out_sem_name);
     sem_t* input_semaphore = sem_open(in_sem_name, O_CREAT, S_IWUSR | S_IRUSR | S_IRGRP | S_IROTH, 1);
     sem_t* output_semaphore = sem_open(out_sem_name, O_CREAT, S_IWUSR | S_IRUSR | S_IRGRP | S_IROTH, 0);
-    std::string name_of_file;
+    std::string filename;
     std::string s;
     int map_fd1 = shm_open("map_fd1.txt", O_RDWR | O_CREAT, S_IWUSR | S_IRUSR | S_IRGRP | S_IROTH);
     int map_fd2 = shm_open("map_fd2.txt", O_RDWR | O_CREAT, S_IWUSR | S_IRUSR | S_IRGRP | S_IROTH);
-    //int map_fd1 = open("pipe1.txt",  O_RDWR | O_CREAT, S_IWUSR | S_IRUSR | S_IRGRP | S_IROTH);
-    //int map_fd2 = open("pipe2.txt",  O_RDWR | O_CREAT, S_IWUSR | S_IRUSR | S_IRGRP | S_IROTH);
     if(map_fd1 == -1){
-        std::cout << "Error during creating file1 for file mapping\n";
+        std::cout << "Error during creating/open file1 for file mapping" << endl;
         exit(1);
     }
     if(map_fd2 == -1){
-        std::cout << "Error during creating file2 for file mapping\n";
+        std::cout << "Error during creating/open file2 for file mapping" << endl;
         exit(1);
     }
     char* memptr_1 = (char*)mmap(nullptr, getpagesize(), PROT_READ | PROT_WRITE,  MAP_SHARED, map_fd1, 0);
     char* memptr_2 = (char*)mmap(nullptr, getpagesize(), PROT_READ | PROT_WRITE,  MAP_SHARED, map_fd2, 0);
     if (memptr_1 == MAP_FAILED){
-        std::cout << "Error in creating file1 mapping\n";
+        cout << "Error in creating file1 mapping << endl";
         exit(1);
     }
     if (memptr_2 == MAP_FAILED){
-        std::cout << "Error in creating file2 mapping\n";
+        cout << "Error in creating file2 mapping" << endl;
         exit(1);
     }
-    std::cout << "Print name of file: ";
-    std::cin >> name_of_file;
+    cout << "Print name of file: ";
+    cin >> filename;
     ifstream file1;
-    file1.open(name_of_file, ios_base::in);
+    file1.open(filename, ios_base::in);
     if (!file1) {
         cout << "File not exist!" << endl;
         exit(1);
@@ -53,18 +51,17 @@ int main(){
     int id = fork();
     switch(id){
         case -1:
-            std::cout << "Error during creating fork\n";
+            cout << "Error during creating fork" << endl;
             exit(1);
             break;
         case 0: {
-            //printf("[%d] It's child\n", getpid());
             sem_wait(output_semaphore);
             sem_wait(input_semaphore);
             sem_post(output_semaphore);
             s = "";
             struct stat st;
             if(fstat(map_fd1, &st)){
-                std::cout << "Error during fstat\n";
+                cout << "Error during fstat" << endl;
                 exit(1); 
             }
             int ind = 0, idx = 0;
@@ -105,7 +102,7 @@ int main(){
                     s = s + "\n";
                     length_1 += s.length() * sizeof(char);
                     if(ftruncate(map_fd2, length_1)){
-                        std::cout << "Error during ftruncate\n";
+                        cout << "Error during ftruncate" << endl;
                         exit(1);    
                     }
                     for(unsigned i = 0; i < s.length(); i++){
@@ -119,7 +116,6 @@ int main(){
             break;
         }
         default: {
-            //printf("[%d] It's parent. Child id: %d\n", getpid(), id);
             sem_wait(input_semaphore);
             int idx = 0;
             int length = 0;
@@ -130,7 +126,7 @@ int main(){
                     s = s + "\n";
                     length += s.length() * sizeof(char);
                     if(ftruncate(map_fd1, length)){
-                        std::cout << "Error during ftrancate\n";
+                        cout << "Error during ftruncate" << endl;
                         exit(1);    
                     } 
                     for(unsigned i = 0; i < s.length(); i++){
@@ -145,7 +141,7 @@ int main(){
             sem_wait(input_semaphore);
             struct stat st;
             if(fstat(map_fd2, &st)) {
-                std::cout << "Error during fstat\n";
+                cout << "Error during fstat" << endl;
                 exit(1); 
             }
             while(ind <= st.st_size) {
@@ -153,7 +149,7 @@ int main(){
                     s += memptr_2[ind++];
                 } else {
                     s += "\n";
-                    std::cout << s;
+                    cout << s;
                     ++ind;
                     s = "";
                 }
